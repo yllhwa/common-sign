@@ -2,6 +2,8 @@ import socketio
 import requests
 import json
 from config import WS_SERVER
+from refresh_cookie import refresh_cookie
+from threading import Timer
 
 sio = socketio.Client()
 
@@ -39,6 +41,9 @@ def QrSign(name, cookie, url):
         f"https://mobilelearn.chaoxing.com/pptSign/stuSignajax?enc={enc}&name={name}&activeId={id}&uid={uid}&clientip=&useragent=&latitude=-1&longtitude=-1&fid={fid}&appType=15", headers=headers)
     print(res.text)
 
+def refresh():
+    refresh_cookie()
+    Timer(86400, refresh).start()
 
 @sio.event
 def new_url(data):
@@ -63,6 +68,7 @@ def disconnect():
 
 sio.connect(WS_SERVER, socketio_path='/ws/socket.io')
 
-
+# 每一天刷新一次 cookie
+refresh()
 sio.emit('get_latest')
 sio.wait()
