@@ -2,6 +2,8 @@ import socketio
 import requests
 import json
 from config import WS_SERVER
+from refresh_cookie import refresh_cookie
+from threading import Timer
 
 sio = socketio.Client()
 
@@ -63,6 +65,7 @@ def disconnect():
 
 sio.connect(WS_SERVER, socketio_path='/ws/socket.io')
 
-
+# 每一天刷新一次 cookie
+Timer(86400, refresh_cookie).start()
 sio.emit('get_latest')
 sio.wait()
