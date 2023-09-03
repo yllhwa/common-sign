@@ -1,7 +1,10 @@
 import socketio
 import requests
 import json
+import time
 from config import WS_SERVER
+from selenium import webdriver
+from selenium.webdriver.common.by import By
 
 sio = socketio.Client()
 
@@ -14,6 +17,61 @@ def connect():
 @sio.event
 def latest_url(data):
     print('latest_url received with ', data)
+
+
+def QrSign_simulate(name, cookies, url):
+    # 使用 http替换 https
+    if url.startswith("https://"):
+        url = url.replace("https://", "http://")
+    # driver配置
+    options = webdriver.EdgeOptions()
+    options.add_argument("--host=mobilelearn.chaoxing.com")
+    options.add_argument("--connection=keep-alive")
+    options.add_argument('--user-agent="Mozilla/5.0 (Linux; Android 13; 23049RAD8C Build/TKQ1.221114.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/108.0.5359.128 Mobile Safari/537.36(schild:20fef079a368fe6417cdfa5535fe4472) (device:23049RAD8C) Language/zh_CN com.chaoxing.mobile/ChaoXingStudy_3_6.1.5_android_phone_911_103 (@Kalimdor)_0adde70add184d7a9ba90c9262d78643"')
+    options.add_argument("--x-requested-with=com.chaoxing.mobile")
+    options.add_argument('-ignore-certificate-errors')
+    options.add_argument('-ignore -ssl-errors')
+    # 无头模式
+    options.add_argument('--headless')
+    driver = webdriver.Edge(options=options)
+    
+    # 等待页面加载
+    driver.implicitly_wait(10)
+
+    # 打开签到页面
+    driver.get(url)
+    # 方法一：添加cookie(暂时不可用)
+    # cookies = dict([l.split("=", 1) for l in cookies.split("; ")]) 
+    # for k,v  in cookies.items():
+    #     driver.add_cookie({
+    #         "name": k,
+    #         "value": v,
+    #         "domain": ".chaoxing.com",
+    #         "path": "/"
+    #     })
+
+    # 方法二：使用账号密码登录
+    # 输入账号密码
+    driver.find_element(By.ID, "phone").send_keys("")
+    driver.find_element(By.ID, "pwd").send_keys("")
+    # 点击登录按钮
+    driver.find_element(By.CLASS_NAME, "btn-big-blue").click()
+    time.sleep(1)
+    # 跳转到最终页面
+    sign_jscode = """
+    var rcode = $("#rcode").val();
+    console.log("rcode=="+rcode);
+    if(rcode){
+        var data = {message:"",cancelFlag:0};
+        data.message = rcode;
+        sacn_callback(data);
+    }else{
+        qiandao();
+    }
+    """
+    # 完成签到
+    driver.execute_script(sign_jscode)
+    time.sleep(1)
 
 
 def QrSign(name, cookie, url):
@@ -51,7 +109,8 @@ def new_url(data):
     for cookie in cookies:
         cookie = cookies[cookie]
         try:
-            QrSign(cookie['name'], cookie['cookie'], data['url'])
+            # QrSign(cookie['name'], cookie['cookie'], data['url'])
+            QrSign_simulate(cookie['name'], cookie['cookie'], data['url'])
         except Exception as e:
             print(e)
 
