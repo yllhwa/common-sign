@@ -2,7 +2,7 @@ import socketio
 import requests
 import json
 import time
-from config import WS_SERVER
+from config import WS_SERVER, users
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
@@ -19,7 +19,7 @@ def latest_url(data):
     print('latest_url received with ', data)
 
 
-def QrSign_simulate(name, cookies, url):
+def QrSign_simulate(url, phone, pwd):
     # 使用 http替换 https
     if url.startswith("https://"):
         url = url.replace("https://", "http://")
@@ -31,6 +31,12 @@ def QrSign_simulate(name, cookies, url):
     options.add_argument("--x-requested-with=com.chaoxing.mobile")
     options.add_argument('-ignore-certificate-errors')
     options.add_argument('-ignore -ssl-errors')
+
+    options.add_experimental_option("excludeSwitches", ['enable-automation', 'enable-logging'])
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('blink-settings=imagesEnabled=false')
+    options.add_argument('--disable-gpu')
     # 无头模式
     options.add_argument('--headless')
     driver = webdriver.Edge(options=options)
@@ -52,8 +58,8 @@ def QrSign_simulate(name, cookies, url):
 
     # 方法二：使用账号密码登录
     # 输入账号密码
-    driver.find_element(By.ID, "phone").send_keys("")
-    driver.find_element(By.ID, "pwd").send_keys("")
+    driver.find_element(By.ID, "phone").send_keys(phone)
+    driver.find_element(By.ID, "pwd").send_keys(pwd)
     # 点击登录按钮
     driver.find_element(By.CLASS_NAME, "btn-big-blue").click()
     time.sleep(1)
@@ -72,6 +78,7 @@ def QrSign_simulate(name, cookies, url):
     # 完成签到
     driver.execute_script(sign_jscode)
     time.sleep(1)
+    print(phone + ":" + "签到成功")
 
 
 def QrSign(name, cookie, url):
@@ -104,13 +111,19 @@ def new_url(data):
     data = json.loads(data)
     if not data['url'].startswith('https://mobilelearn.chaoxing.com/widget/sign'):
         return
-    with open('cookies.json', 'r', encoding="utf-8") as f:
-        cookies = json.load(f)
-    for cookie in cookies:
-        cookie = cookies[cookie]
+    # with open('cookies.json', 'r', encoding="utf-8") as f:
+    #     cookies = json.load(f)
+
+    # for cookie in cookies:
+    #     cookie = cookies[cookie]
+    #     try:
+    #         # QrSign(cookie['name'], cookie['cookie'], data['url'])
+    #         QrSign_simulate(cookie['name'], cookie['cookie'], data['url'])
+    #     except Exception as e:
+    #         print(e)
+    for user in users:
         try:
-            # QrSign(cookie['name'], cookie['cookie'], data['url'])
-            QrSign_simulate(cookie['name'], cookie['cookie'], data['url'])
+            QrSign_simulate(phone=user[0], pwd=user[1], url=data['url'])
         except Exception as e:
             print(e)
 
